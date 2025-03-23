@@ -1,0 +1,40 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="bootstrap/bootstrap.min.css" />
+    <link rel="stylesheet" href="app.css" />
+    <link rel="stylesheet" href="LoginPage.styles.css" />
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
+
+    <!-- Blazor Head Outlet -->
+    <HeadOutlet />
+</head>
+
+<body class="bg-gray-100">
+    <!--
+      A flex container to center everything
+      both horizontally (justify-center)
+      and vertically (items-center).
+      min-h-screen ensures it takes the full viewport height.
+    -->
+    <div class="flex flex-col items-center justify-center min-h-screen">
+        <!-- Centered Logo -->
+        <img src="logo.png"
+             alt="CLTI Diagnosis Logo"
+             class="mb-4"
+             style="max-width: 300px;" />
+
+        <!-- Blazor App Root -->
+        <div id="app"></div>
+    </div>
+
+    <script src="_framework/blazor.webassembly.js"></script>
+</body>
+</html>

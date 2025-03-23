@@ -1,0 +1,36 @@
+﻿@inject NavigationManager Navigation
+@using Microsoft.AspNetCore.Components.Authorization
+@inherits LayoutComponentBase
+
+<AuthorizeView>
+    <Authorized>
+        <div class="page">
+            <div class="sidebar">
+                <NavMenu />
+            </div>
+
+            <main>
+                <article class="content px-4">
+                    @Body
+                </article>
+            </main>
+        </div>
+    </Authorized>
+    <NotAuthorized>
+        @if (!Navigation.Uri.Contains("login-register", StringComparison.OrdinalIgnoreCase))
+        {
+            Navigation.NavigateTo("/login-register", true);
+        }
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    protected override void OnInitialized()
+    {
+        // уникаємо редірект на login-register, якщо ми вже на ньому
+        if (!Navigation.Uri.Contains("login-register", StringComparison.OrdinalIgnoreCase))
+        {
+            Navigation.NavigateTo("/login-register", true);
+        }
+    }
+}

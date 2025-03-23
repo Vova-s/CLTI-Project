@@ -1,0 +1,80 @@
+﻿@inject NavigationManager NavManager
+
+<style>
+    body {
+        font-family: 'Inter', sans-serif;
+    }
+
+    .nav-scrollable {
+        width: 250px;
+        height: 100vh;
+    }
+
+    .nav-link {
+        font-size: 14px;
+        font-weight: 600;
+        color: #191919; /* Змінив колір тексту */
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 0;
+    }
+
+    .nav-item {
+        font-size: 14px;
+        font-weight: 600;
+        color: #191919; /* Змінив колір тексту */
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 0;
+    }
+
+        .nav-link input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: #007bff;
+        }
+</style>
+
+<div class="top-row ps-3 navbar bg-blue-100 p-6">
+    <div class="container-fluid bg-blue-100 p-6">
+        <a class="navbar-brand text-lg font-semibold">CLTI алгоритм</a>
+    </div>
+</div>
+
+<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+
+<div class="nav-scrollable bg-blue-100 p-6" onclick="document.querySelector('.navbar-toggler').click()">
+    <nav class="flex-column">
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                <input type="checkbox" class="mr-2" checked> Home
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="counter">
+                <input type="checkbox" class="mr-2"> Counter
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="weather">
+                <input type="checkbox" class="mr-2"> Weather
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="login-register">
+                <input type="checkbox" class="mr-2"> Login
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="KPI-page">
+                <input type="checkbox" class="mr-2"> KPI
+            </NavLink>
+        </div>
+    </nav>
+</div>

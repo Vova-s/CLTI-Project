@@ -1,0 +1,131 @@
+﻿@page "/login-register"
+@using Blazored.LocalStorage
+@rendermode InteractiveWebAssembly
+@layout EmptyLayout
+@inject NavigationManager Navigation
+@inject HttpClient Http
+@inject CustomAuthStateProvider AuthProvider
+@inject ILocalStorageService LocalStorage
+
+<!-- TailwindCSS is loaded via CDN; ideally, this link should be in index.html -->
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+
+<div class="flex items-center justify-center min-h-screen bg-gray-100">
+    <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 w-full max-w-sm">
+        <h2 class="text-2xl font-bold text-center mb-6">Login</h2>
+
+        <!-- Email Input -->
+        <div class="mb-4">
+            <label for="email" class="block text-gray-700 text-sm font-bold mb-2">Email *</label>
+            <input id="email" @bind="loginUser.Email"
+                   class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                   placeholder="Enter your email" />
+        </div>
+
+        <!-- Password Input -->
+        <div class="mb-4">
+            <label for="password" class="block text-gray-700 text-sm font-bold mb-2">Password *</label>
+            <input id="password" @bind="loginUser.Password" type="password"
+                   class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                   placeholder="Enter your password" />
+        </div>
+
+        <!-- Remember Me Checkbox -->
+        <div class="flex items-center justify-between mb-4">
+            <label for="rememberMe" class="flex items-center text-gray-600 text-sm">
+                <input id="rememberMe" type="checkbox" @bind="rememberMe" class="mr-1" />
+                Remember Me
+            </label>
+        </div>
+
+        <!-- Login Button -->
+        <button @onclick="LoginUser"
+                class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full">
+            Login
+        </button>
+        <div class="mt-4 text-center text-sm text-gray-600">
+            Don’t have an account?
+            <a href="/register" class="text-blue-500 hover:underline font-medium">Sign up</a>
+        </div>
+
+        <!-- Display error message if any -->
+        @if (!string.IsNullOrEmpty(message))
+        {
+            <div class="mt-4 text-center text-red-500">@message</div>
+        }
+    </div>
+</div>
+
+@code {
+    // Model for login input
+    private LoginModel loginUser = new();
+
+    // Stores error messages
+    private string message = string.Empty;
+
+    // Tracks the "Remember Me" checkbox state
+    private bool rememberMe = false;
+
+    /// <summary>
+    /// Called when the user clicks the Login button.
+    /// Sends a POST request to the login API, stores the received token in Local Storage,
+    /// updates the authentication state, and navigates to the home page.
+    /// </summary>
+    private async Task LoginUser()
+    {
+        try
+        {
+            // Send a POST request with the login credentials
+            var response = await Http.PostAsJsonAsync("http://localhost:5001/api/users/login", loginUser);
+
+            if (response.IsSuccessStatusCode)
+            {
+                // Assume the API returns the token as plain text
+                var token = await response.Content.ReadAsStringAsync();
+
+                if (!string.IsNullOrWhiteSpace(token))
+                {
+                    // Save the token in Local Storage
+                    await LocalStorage.SetItemAsync("authToken", token);
+
+                    // Update the authentication state
+                    await AuthProvider.Login(token);
+
+                    // Navigate to the home page ("/")
+                    Navigation.NavigateTo("/", true);
+                }
+                else
+                {
+                    message = "Authentication failed. No token received.";
+                }
+            }
+            else
+            {
+                message = "Invalid login credentials.";
+            }
+        }
+        catch (Exception ex)
+        {
+            message = "Error: " + ex.Message;
+        }
+    }
+
+    /// <summary>
+    /// After the component is rendered for the first time,
+    /// refresh the authentication state to ensure that JS interop calls occur when the JS runtime is available.
+    /// </summary>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await AuthProvider.RefreshAuthenticationStateAsync();
+        }
+    }
+
+    // Login model representing the user credentials
+    public class LoginModel
+    {
+        public string? Email { get; set; }
+        public string? Password { get; set; }
+    }
+}

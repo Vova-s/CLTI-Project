@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.11.35327.3
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LoginPage", "LoginPage\LoginPage.csproj", "{6ABA92BA-CDF5-4538-B6AB-4DAA1DD833CF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LoginPage.Client", "LoginPage.Client\LoginPage.Client.csproj", "{5E3D1967-46BB-48BF-ABB3-F0E969F4352A}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{6ABA92BA-CDF5-4538-B6AB-4DAA1DD833CF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6ABA92BA-CDF5-4538-B6AB-4DAA1DD833CF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6ABA92BA-CDF5-4538-B6AB-4DAA1DD833CF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6ABA92BA-CDF5-4538-B6AB-4DAA1DD833CF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5E3D1967-46BB-48BF-ABB3-F0E969F4352A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5E3D1967-46BB-48BF-ABB3-F0E969F4352A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5E3D1967-46BB-48BF-ABB3-F0E969F4352A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5E3D1967-46BB-48BF-ABB3-F0E969F4352A}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {E2C20377-1D43-4CD2-BA3D-22D73C723128}
+	EndGlobalSection
+EndGlobal

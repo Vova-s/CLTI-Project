@@ -1,0 +1,26 @@
+﻿@page "/KPI-page"
+
+<div class="flex h-screen bg-gray-100">
+    <!-- Sidebar -->
+    <aside class="w-1/4 bg-blue-100 p-6">
+        <h2 class="text-2xl font-bold mb-4">CLTI алгоритм</h2>
+
+        <div class="border-t pt-4">
+            <h3 class="text-lg font-semibold">Значущість гемодинамічних змін</h3>
+            <div class="mt-2">
+                <input type="checkbox" id="kpi" @bind="isKpiChecked" class="mr-2">
+                <label for="kpi" class="text-gray-800">КПІ</label>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 p-10 bg-white">
+        <h3 class="text-xl font-semibold mb-4">Значення КПІ (кісточково-плечовий індекс)</h3>
+        <input type="text" placeholder="Введіть значення" class="w-full p-2 border rounded-md focus:outline-none focus:ring focus:ring-blue-300" />
+    </main>
+</div>
+
+@code {
+    private bool isKpiChecked = false;
+}
