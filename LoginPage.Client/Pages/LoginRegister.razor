@@ -1,16 +1,14 @@
 ﻿@page "/login-register"
 @using Blazored.LocalStorage
-@rendermode InteractiveWebAssembly
-@layout EmptyLayout
+@using Microsoft.JSInterop
+@rendermode InteractiveAuto
 @inject NavigationManager Navigation
 @inject HttpClient Http
 @inject CustomAuthStateProvider AuthProvider
+@inject IJSRuntime JSRuntime
 @inject ILocalStorageService LocalStorage
 
-<!-- TailwindCSS is loaded via CDN; ideally, this link should be in index.html -->
-<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-
-<div class="flex items-center justify-center min-h-screen bg-gray-100">
+<div class="flex flex-col items-center justify-center min-h-screen w-full bg-gray-100">
     <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 w-full max-w-sm">
         <h2 class="text-2xl font-bold text-center mb-6">Login</h2>
 
@@ -20,6 +18,10 @@
             <input id="email" @bind="loginUser.Email"
                    class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                    placeholder="Enter your email" />
+            @if (string.IsNullOrEmpty(loginUser.Email) && showValidation)
+            {
+                <div class="text-red-500 text-sm mt-1">Email is required</div>
+            }
         </div>
 
         <!-- Password Input -->
@@ -28,6 +30,10 @@
             <input id="password" @bind="loginUser.Password" type="password"
                    class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                    placeholder="Enter your password" />
+            @if (string.IsNullOrEmpty(loginUser.Password) && showValidation)
+            {
+                <div class="text-red-500 text-sm mt-1">Password is required</div>
+            }
         </div>
 
         <!-- Remember Me Checkbox -->
@@ -39,12 +45,20 @@
         </div>
 
         <!-- Login Button -->
-        <button @onclick="LoginUser"
+        <button @onclick="HandleLoginClick"
                 class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full">
-            Login
+            @if (isLoading)
+            {
+                <span>Processing...</span>
+            }
+            else
+            {
+                <span>Login</span>
+            }
         </button>
+
         <div class="mt-4 text-center text-sm text-gray-600">
-            Don’t have an account?
+            Don't have an account?
             <a href="/register" class="text-blue-500 hover:underline font-medium">Sign up</a>
         </div>
 
@@ -63,62 +77,125 @@
     // Stores error messages
     private string message = string.Empty;
 
+    // Validation flag
+    private bool showValidation = false;
+
+    // Loading indicator
+    private bool isLoading = false;
+
     // Tracks the "Remember Me" checkbox state
     private bool rememberMe = false;
 
-    /// <summary>
-    /// Called when the user clicks the Login button.
-    /// Sends a POST request to the login API, stores the received token in Local Storage,
-    /// updates the authentication state, and navigates to the home page.
-    /// </summary>
-    private async Task LoginUser()
+    // Flag to check if component has rendered
+    private bool hasRendered = false;
+
+    // Safe method for JS calls that won't error during prerendering
+    private async Task SafeJsLogAsync(string message, params object[] args)
     {
         try
         {
-            // Send a POST request with the login credentials
-            var response = await Http.PostAsJsonAsync("http://localhost:5001/api/users/login", loginUser);
+            if (hasRendered)
+            {
+                await JSRuntime.InvokeVoidAsync("console.log", new object[] { message }.Concat(args).ToArray());
+            }
+            else
+            {
+                Console.WriteLine($"[JS Log skipped during prerender]: {message}");
+            }
+        }
+        catch
+        {
+            // Ignore JS errors during prerendering
+        }
+    }
+
+    // Move JavaScript calls to OnAfterRender
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            hasRendered = true;
+            await SafeJsLogAsync("Login component initialized");
+        }
+    }
+
+    private bool ValidateForm()
+    {
+        showValidation = true;
+
+        if (string.IsNullOrEmpty(loginUser.Email) || string.IsNullOrEmpty(loginUser.Password))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private async Task HandleLoginClick()
+    {
+        await SafeJsLogAsync("Login button clicked");
+
+        if (!ValidateForm())
+        {
+            await SafeJsLogAsync("Login validation failed");
+            return;
+        }
+
+        try
+        {
+            isLoading = true;
+            StateHasChanged(); // Update UI to show loading state
+
+            await SafeJsLogAsync("Attempting login with:", loginUser.Email);
+
+            // Using relative URL for API endpoint
+            var response = await Http.PostAsJsonAsync("api/account/login", loginUser);
+
+            await SafeJsLogAsync("Login response status:", response.StatusCode);
+
+            var responseContent = await response.Content.ReadAsStringAsync();
+            await SafeJsLogAsync("Login response content:", responseContent);
 
             if (response.IsSuccessStatusCode)
             {
-                // Assume the API returns the token as plain text
-                var token = await response.Content.ReadAsStringAsync();
+                var token = responseContent;
 
                 if (!string.IsNullOrWhiteSpace(token))
                 {
-                    // Save the token in Local Storage
+                    await SafeJsLogAsync("Login successful, saving token");
+
+                    // Save the token in local storage
                     await LocalStorage.SetItemAsync("authToken", token);
 
                     // Update the authentication state
                     await AuthProvider.Login(token);
 
-                    // Navigate to the home page ("/")
+                    // Navigate to home page
                     Navigation.NavigateTo("/", true);
                 }
                 else
                 {
                     message = "Authentication failed. No token received.";
+                    await SafeJsLogAsync("No token received");
                 }
             }
             else
             {
-                message = "Invalid login credentials.";
+                message = !string.IsNullOrWhiteSpace(responseContent) ? responseContent : "Invalid login credentials.";
+                Console.WriteLine($"Login failed: {message}");
+                await SafeJsLogAsync("Login failed:", message);
             }
         }
         catch (Exception ex)
         {
             message = "Error: " + ex.Message;
+            Console.WriteLine($"Login exception: {ex.Message}");
+            await SafeJsLogAsync("Login exception:", ex.Message);
         }
-    }
-
-    /// <summary>
-    /// After the component is rendered for the first time,
-    /// refresh the authentication state to ensure that JS interop calls occur when the JS runtime is available.
-    /// </summary>
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
+        finally
         {
-            await AuthProvider.RefreshAuthenticationStateAsync();
+            isLoading = false;
+            StateHasChanged();
         }
     }
 

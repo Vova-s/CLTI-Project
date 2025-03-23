@@ -1,6 +1,5 @@
 ﻿<!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -13,28 +12,125 @@
     <link rel="icon" type="image/png" href="favicon.png" />
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
 
-    <!-- Blazor Head Outlet -->
     <HeadOutlet />
+
+    <style>
+        /* Loading screen styles */
+        #loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: #f5f5f5;
+            z-index: 9999;
+            transition: opacity 0.5s ease-out;
+        }
+
+        .logo-container {
+            margin-bottom: 20px;
+        }
+
+        .logo-image {
+            max-width: 5000px;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(0, 123, 255, 0.2);
+            border-top: 5px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        #app {
+            visibility: hidden;
+            opacity: 0;
+            transition: opacity 0.5s ease-in;
+        }
+
+            #app.loaded {
+                visibility: visible;
+                opacity: 1;
+            }
+    </style>
 </head>
 
 <body class="bg-gray-100">
-    <!--
-      A flex container to center everything
-      both horizontally (justify-center)
-      and vertically (items-center).
-      min-h-screen ensures it takes the full viewport height.
-    -->
-    <div class="flex flex-col items-center justify-center min-h-screen">
-        <!-- Centered Logo -->
-        <img src="logo.png"
-             alt="CLTI Diagnosis Logo"
-             class="mb-4"
-             style="max-width: 300px;" />
-
-        <!-- Blazor App Root -->
-        <div id="app"></div>
+    <!-- Loading Screen -->
+    <div id="loading-screen">
+        <div class="logo-container">
+            <img src="logo.png" alt="CLTI Diagnosis Logo" class="logo-image" />
+        </div>
+        <div class="loading-spinner"></div>
+        <p class="mt-3">Loading...</p>
     </div>
 
+    <!-- Blazor App Root -->
+    <div id="app"></div>
+
     <script src="_framework/blazor.webassembly.js"></script>
+
+    <!-- Script to handle transition from loading screen to app -->
+    <script>
+        // Function to hide loading screen and show app
+        function showApp() {
+            const loadingScreen = document.getElementById('loading-screen');
+            const app = document.getElementById('app');
+
+            // Fade out loading screen
+            loadingScreen.style.opacity = '0';
+
+            // Show app
+            app.classList.add('loaded');
+
+            // Remove loading screen after animation completes
+            setTimeout(() => {
+                loadingScreen.style.display = 'none';
+            }, 500);
+        }
+
+        // Check if Blazor is loaded and initialized
+        document.addEventListener('DOMContentLoaded', function () {
+            // Wait for Blazor to start
+            if (window.Blazor) {
+                Blazor.addEventListener('afterStarted', showApp);
+            } else {
+                // Fallback for older Blazor versions
+                setTimeout(() => {
+                    if (document.querySelector('.blazor-error-ui')) {
+                        // If error UI is present, Blazor has initialized (even with errors)
+                        showApp();
+                    } else {
+                        // Keep checking
+                        const checkInterval = setInterval(() => {
+                            if (document.querySelector('.blazor-error-ui') || window._blazorInitialized) {
+                                clearInterval(checkInterval);
+                                showApp();
+                            }
+                        }, 100);
+                    }
+                }, 1000);
+            }
+
+            // Safety timeout - show the app after 10 seconds regardless
+            setTimeout(showApp, 10000);
+        });
+    </script>
 </body>
 </html>

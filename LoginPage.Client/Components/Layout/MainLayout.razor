@@ -1,36 +1,54 @@
 ﻿@inject NavigationManager Navigation
+@using LoginPage.Client.Shared
 @using Microsoft.AspNetCore.Components.Authorization
 @inherits LayoutComponentBase
-
-<AuthorizeView>
-    <Authorized>
-        <div class="page">
-            <div class="sidebar">
-                <NavMenu />
-            </div>
-
-            <main>
-                <article class="content px-4">
-                    @Body
-                </article>
-            </main>
-        </div>
-    </Authorized>
-    <NotAuthorized>
-        @if (!Navigation.Uri.Contains("login-register", StringComparison.OrdinalIgnoreCase))
-        {
-            Navigation.NavigateTo("/login-register", true);
-        }
-    </NotAuthorized>
-</AuthorizeView>
+@rendermode InteractiveWebAssembly
 
 @code {
-    protected override void OnInitialized()
+    private bool IsAuthPage()
     {
-        // уникаємо редірект на login-register, якщо ми вже на ньому
-        if (!Navigation.Uri.Contains("login-register", StringComparison.OrdinalIgnoreCase))
-        {
-            Navigation.NavigateTo("/login-register", true);
-        }
+        var currentPath = new Uri(Navigation.Uri).LocalPath.ToLower();
+        return currentPath == "/register" || currentPath == "/login-register";
     }
+    
+    // We won't need OnAfterRender redirection with the improved logic below
 }
+
+@if (IsAuthPage())
+{
+    <div class="auth-page">
+        @Body
+    </div>
+}
+else
+{
+    <AuthorizeView>
+        <Authorized>
+            <div class="page">
+                <div class="sidebar">
+                    <NavMenu />
+                </div>
+                <main>
+                    <article class="content px-4">
+                        @Body
+                    </article>
+                </main>
+            </div>
+        </Authorized>
+        <NotAuthorized>
+            <!-- Instead of JavaScript redirection, use a component -->
+            <LoginPage.Client.Pages.LoginRegister />
+        </NotAuthorized>
+    </AuthorizeView>
+}
+
+<style>
+    .auth-page {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        width: 100%;
+        padding: 1rem;
+    }
+</style>

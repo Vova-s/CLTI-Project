@@ -1,8 +1,10 @@
 ﻿@page "/register"
-@layout EmptyLayout
+@layout MainLayout
 @inject HttpClient Http
 @inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
 @using System.ComponentModel.DataAnnotations
+@rendermode InteractiveWebAssembly
 
 <!-- TailwindCSS -->
 <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
@@ -11,74 +13,88 @@
     <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 w-full max-w-sm">
         <h2 class="text-2xl font-bold text-center mb-6">Sign Up</h2>
 
-        <EditForm Model="@userModel" OnValidSubmit="@HandleValidSubmit" FormName="RegisterForm">
-            <DataAnnotationsValidator />
-
+        <!-- Використовуємо звичайну div замість EditForm для уникнення проблем з автоматичною відправкою -->
+        <div>
             <!-- Поля вводу -->
             <div class="mb-4">
                 <label class="block text-gray-700 text-sm font-bold mb-1">First Name *</label>
-                <InputText @bind-Value="userModel.FirstName" placeholder="Enter your first name"
-                           class="shadow border rounded w-full py-2 px-3" />
-                @if (!string.IsNullOrEmpty(firstNameError))
+                <input @bind="userModel.FirstName" placeholder="Enter your first name"
+                       class="shadow border rounded w-full py-2 px-3" />
+                @if (string.IsNullOrEmpty(userModel.FirstName) && showValidation)
                 {
-                    <div class="text-red-500 text-sm mt-1">@firstNameError</div>
+                    <div class="text-red-500 text-sm mt-1">First name is required</div>
                 }
-                <ValidationMessage For="@(() => userModel.FirstName)" class="text-red-500 text-sm mt-1" />
             </div>
 
             <div class="mb-4">
                 <label class="block text-gray-700 text-sm font-bold mb-1">Last Name *</label>
-                <InputText @bind-Value="userModel.LastName" placeholder="Enter your last name"
-                           class="shadow border rounded w-full py-2 px-3" />
-                @if (!string.IsNullOrEmpty(lastNameError))
+                <input @bind="userModel.LastName" placeholder="Enter your last name"
+                       class="shadow border rounded w-full py-2 px-3" />
+                @if (string.IsNullOrEmpty(userModel.LastName) && showValidation)
                 {
-                    <div class="text-red-500 text-sm mt-1">@lastNameError</div>
+                    <div class="text-red-500 text-sm mt-1">Last name is required</div>
                 }
-                <ValidationMessage For="@(() => userModel.LastName)" class="text-red-500 text-sm mt-1" />
             </div>
 
             <div class="mb-4">
                 <label class="block text-gray-700 text-sm font-bold mb-1">Email *</label>
-                <InputText type="email" @bind-Value="userModel.Email" placeholder="Enter your email"
-                           class="shadow border rounded w-full py-2 px-3" />
-                @if (!string.IsNullOrEmpty(emailError))
+                <input type="email" @bind="userModel.Email" placeholder="Enter your email"
+                       class="shadow border rounded w-full py-2 px-3" />
+                @if (string.IsNullOrEmpty(userModel.Email) && showValidation)
                 {
-                    <div class="text-red-500 text-sm mt-1">@emailError</div>
+                    <div class="text-red-500 text-sm mt-1">Email is required</div>
                 }
-                <ValidationMessage For="@(() => userModel.Email)" class="text-red-500 text-sm mt-1" />
+                @if (!string.IsNullOrEmpty(userModel.Email) && !IsValidEmail(userModel.Email) && showValidation)
+                {
+                    <div class="text-red-500 text-sm mt-1">Email format is invalid</div>
+                }
             </div>
 
             <div class="mb-4">
                 <label class="block text-gray-700 text-sm font-bold mb-1">Password *</label>
-                <InputText type="password" @bind-Value="userModel.Password" placeholder="Enter your password"
-                           class="shadow border rounded w-full py-2 px-3" />
-                @if (!string.IsNullOrEmpty(passwordError))
+                <input type="password" @bind="userModel.Password" placeholder="Enter your password"
+                       class="shadow border rounded w-full py-2 px-3" />
+                @if (string.IsNullOrEmpty(userModel.Password) && showValidation)
                 {
-                    <div class="text-red-500 text-sm mt-1">@passwordError</div>
+                    <div class="text-red-500 text-sm mt-1">Password is required</div>
                 }
-                <ValidationMessage For="@(() => userModel.Password)" class="text-red-500 text-sm mt-1" />
+                @if (!string.IsNullOrEmpty(userModel.Password) && userModel.Password.Length < 6 && showValidation)
+                {
+                    <div class="text-red-500 text-sm mt-1">Password must be at least 6 characters</div>
+                }
             </div>
 
             <div class="mb-4">
                 <label class="block text-gray-700 text-sm font-bold mb-1">Confirm Password *</label>
-                <InputText type="password" @bind-Value="confirmPassword" placeholder="Confirm your password"
-                           class="shadow border rounded w-full py-2 px-3" />
-                @if (!string.IsNullOrEmpty(confirmPasswordError))
+                <input type="password" @bind="confirmPassword" placeholder="Confirm your password"
+                       class="shadow border rounded w-full py-2 px-3" />
+                @if (userModel.Password != confirmPassword && showValidation && !string.IsNullOrEmpty(confirmPassword))
                 {
-                    <div class="text-red-500 text-sm mt-1">@confirmPasswordError</div>
+                    <div class="text-red-500 text-sm mt-1">Passwords do not match</div>
                 }
             </div>
 
-            <!-- Кнопка сабміту -->
-            <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full">
+            <!-- Кнопка реєстрації як звичайна кнопка, не submit -->
+            <button type="button" @onclick="TestButtonClick"
+                    class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full">
                 Register
             </button>
-        </EditForm>
+        </div>
 
         <!-- Повідомлення -->
         @if (!string.IsNullOrEmpty(message))
         {
-            <div class="mt-4 text-center @(message.Contains("successfully") ? "text-green-500" : "text-red-500")">@message</div>
+            <div class="mt-4 text-center @(message.Contains("successfully") ? "text-green-500" : "text-red-500")">
+                @message
+            </div>
+        }
+
+        <!-- Індикатор завантаження -->
+        @if (isLoading)
+        {
+            <div class="mt-4 text-center text-blue-500">
+                <span class="inline-block animate-spin mr-2">⟳</span> Processing...
+            </div>
         }
 
         <!-- Посилання на логін -->
@@ -93,96 +109,135 @@
     private RegisterModel userModel = new();
     private string? confirmPassword;
     private string? message;
+    private bool showValidation = false;
+    private bool isLoading = false;
 
-    // Поле для помилок валідації
-    private string? firstNameError;
-    private string? lastNameError;
-    private string? emailError;
-    private string? passwordError;
-    private string? confirmPasswordError;
+    // Флаг, який показує, чи компонент вже було відрендерено
+    private bool hasRendered = false;
 
     public class RegisterModel
     {
-        [Required(ErrorMessage = "First name is required")]
         public string? FirstName { get; set; }
-
-        [Required(ErrorMessage = "Last name is required")]
         public string? LastName { get; set; }
-
-        [Required(ErrorMessage = "Email is required")]
-        [EmailAddress(ErrorMessage = "Invalid email address")]
         public string? Email { get; set; }
-
-        [Required(ErrorMessage = "Password is required")]
-        [StringLength(100, ErrorMessage = "Password must be at least {2} characters long.", MinimumLength = 6)]
         public string? Password { get; set; }
     }
-
-    private bool ValidateConfirmPassword()
+    private void TestButtonClick()
     {
-        if (userModel.Password != confirmPassword)
+        Console.WriteLine("Кнопка натиснута");
+    }
+    // БЕЗПЕЧНИЙ метод для виклику JS, який не викличе помилку під час пререндерингу
+    private async Task SafeJsLogAsync(string message, params object[] args)
+    {
+        try
         {
-            confirmPasswordError = "Passwords do not match.";
+            if (hasRendered)
+            {
+                await JSRuntime.InvokeVoidAsync("console.log", new object[] { message }.Concat(args).ToArray());
+            }
+            else
+            {
+                Console.WriteLine($"[JS Log skipped during prerender]: {message}");
+            }
+        }
+        catch
+        {
+            // Ігноруємо помилки JavaScript під час пререндерингу
+        }
+    }
+
+    // Переміщуємо виклик JavaScript у OnAfterRenderAsync замість OnInitializedAsync
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            hasRendered = true;
+            await SafeJsLogAsync("Register component initialized");
+        }
+    }
+
+    private bool IsValidEmail(string email)
+    {
+        try
+        {
+            var addr = new System.Net.Mail.MailAddress(email);
+            return addr.Address == email;
+        }
+        catch
+        {
             return false;
         }
-        confirmPasswordError = null;
+    }
+
+    private bool ValidateForm()
+    {
+        showValidation = true;
+
+        // Базова валідація форми
+        if (string.IsNullOrEmpty(userModel.FirstName) ||
+            string.IsNullOrEmpty(userModel.LastName) ||
+            string.IsNullOrEmpty(userModel.Email) ||
+            string.IsNullOrEmpty(userModel.Password) ||
+            userModel.Password != confirmPassword ||
+            !IsValidEmail(userModel.Email) ||
+            userModel.Password.Length < 6)
+        {
+            return false;
+        }
+
         return true;
     }
 
-    private async Task HandleValidSubmit()
+    private async Task HandleRegisterClick()
     {
-        Console.WriteLine("HandleValidSubmit викликано");
+        await SafeJsLogAsync("Register button clicked");
 
-        // Скидання повідомлень про помилки
-        firstNameError = lastNameError = emailError = passwordError = null;
-
-        // Перевірка на співпадіння паролів перед відправкою форми
-        if (!ValidateConfirmPassword())
+        if (!ValidateForm())
         {
+            await SafeJsLogAsync("Form validation failed");
             return;
         }
 
         try
         {
-            // Створюємо копію моделі для відправки
-            var modelToSend = new RegisterModel
-                {
-                    FirstName = userModel.FirstName,
-                    LastName = userModel.LastName,
-                    Email = userModel.Email,
-                    Password = userModel.Password
-                };
+            isLoading = true;
+            await SafeJsLogAsync("Sending registration data", userModel);
 
-            Console.WriteLine("Валідація пройшла, надсилаємо POST запит");
+            // Використовуємо відносний URL для API
+            var baseUri = Navigation.BaseUri;
+            var response = await Http.PostAsJsonAsync($"{baseUri}api/account/register", userModel);
 
-            var response = await Http.PostAsJsonAsync("https://localhost:7227/api/account/register", modelToSend);
+            await SafeJsLogAsync("Response status:", response.StatusCode);
+
+            var responseContent = await response.Content.ReadAsStringAsync();
+            await SafeJsLogAsync("Response content:", responseContent);
 
             if (response.IsSuccessStatusCode)
             {
                 message = "User successfully registered!";
+                await SafeJsLogAsync("Registration successful");
 
-                // Використовуємо StateHasChanged для оновлення UI перед переходом
-                StateHasChanged();
-
+                // Затримка перед переходом
                 await Task.Delay(1500);
                 Navigation.NavigateTo("/login-register");
             }
             else
             {
-                var error = await response.Content.ReadAsStringAsync();
-                message = !string.IsNullOrWhiteSpace(error) ? error : "Registration failed.";
-
-                // Якщо помилка по конкретному полю, можна встановити відповідне повідомлення
-                if (error.Contains("email", StringComparison.OrdinalIgnoreCase))
-                {
-                    emailError = "This email is already registered.";
-                }
+                message = !string.IsNullOrEmpty(responseContent) ? responseContent : "Registration failed";
+                await SafeJsLogAsync("Registration failed:", message);
             }
         }
         catch (Exception ex)
         {
-            message = "Error: " + ex.Message;
-            Console.WriteLine("Exception: " + ex.Message);
+            message = $"Error: {ex.Message}";
+            Console.WriteLine($"Registration exception: {ex.Message}");
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
+            await SafeJsLogAsync("Registration exception:", ex.Message);
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
         }
     }
 }
