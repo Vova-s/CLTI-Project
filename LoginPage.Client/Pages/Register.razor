@@ -11,7 +11,7 @@
     <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 w-full max-w-sm">
         <h2 class="text-2xl font-bold text-center mb-6">Sign Up</h2>
 
-        <EditForm Model="@userModel" OnValidSubmit="HandleSubmit" FormName="RegisterForm">
+        <EditForm Model="@userModel" OnValidSubmit="@HandleValidSubmit" FormName="RegisterForm">
             <DataAnnotationsValidator />
 
             <!-- Поля вводу -->
@@ -118,29 +118,52 @@
         public string? Password { get; set; }
     }
 
-    private async Task HandleSubmit()
+    private bool ValidateConfirmPassword()
     {
-        Console.WriteLine("HandleSubmit викликано");
-
-        // Скидання повідомлень про помилки
-        firstNameError = lastNameError = emailError = passwordError = confirmPasswordError = null;
-        message = null;
-
-        // Перевірка на співпадіння паролів
         if (userModel.Password != confirmPassword)
         {
             confirmPasswordError = "Passwords do not match.";
+            return false;
+        }
+        confirmPasswordError = null;
+        return true;
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        Console.WriteLine("HandleValidSubmit викликано");
+
+        // Скидання повідомлень про помилки
+        firstNameError = lastNameError = emailError = passwordError = null;
+
+        // Перевірка на співпадіння паролів перед відправкою форми
+        if (!ValidateConfirmPassword())
+        {
             return;
         }
 
-        Console.WriteLine("Валідація пройшла, надсилаємо POST запит");
-
         try
         {
-            var response = await Http.PostAsJsonAsync("https://localhost:7227/api/account/register", userModel);
+            // Створюємо копію моделі для відправки
+            var modelToSend = new RegisterModel
+                {
+                    FirstName = userModel.FirstName,
+                    LastName = userModel.LastName,
+                    Email = userModel.Email,
+                    Password = userModel.Password
+                };
+
+            Console.WriteLine("Валідація пройшла, надсилаємо POST запит");
+
+            var response = await Http.PostAsJsonAsync("https://localhost:7227/api/account/register", modelToSend);
+
             if (response.IsSuccessStatusCode)
             {
                 message = "User successfully registered!";
+
+                // Використовуємо StateHasChanged для оновлення UI перед переходом
+                StateHasChanged();
+
                 await Task.Delay(1500);
                 Navigation.NavigateTo("/login-register");
             }
@@ -148,6 +171,12 @@
             {
                 var error = await response.Content.ReadAsStringAsync();
                 message = !string.IsNullOrWhiteSpace(error) ? error : "Registration failed.";
+
+                // Якщо помилка по конкретному полю, можна встановити відповідне повідомлення
+                if (error.Contains("email", StringComparison.OrdinalIgnoreCase))
+                {
+                    emailError = "This email is already registered.";
+                }
             }
         }
         catch (Exception ex)
