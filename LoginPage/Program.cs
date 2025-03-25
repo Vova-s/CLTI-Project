@@ -6,33 +6,45 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using LoginPage.Client.Shared;
 
+#region Configure Builder and Services
 var builder = WebApplication.CreateBuilder(args);
 
-// DI-сервіси
-// Додаємо HTTP-клієнт зі специфічною базовою адресою для сервера API
+#region Configure HTTP Client Services
+// Add an HTTP client with a specific base address for the API server
 builder.Services.AddHttpClient("ServerAPI", client =>
 {
-    client.BaseAddress = new Uri(builder.Configuration["ApiBaseUrl"] ?? builder.Configuration.GetValue<string>("BaseAddress") ?? "https://localhost:7227/");
+    client.BaseAddress = new Uri(builder.Configuration["ApiBaseUrl"]
+                                 ?? builder.Configuration.GetValue<string>("BaseAddress")
+                                 ?? "https://localhost:7227/");
 });
 
-// Налаштовуємо HttpClient для клієнтського проекту Blazor WebAssembly
+// Configure HttpClient for the Blazor WebAssembly client project
 builder.Services.AddScoped(sp =>
 {
     var clientFactory = sp.GetRequiredService<IHttpClientFactory>();
     return clientFactory.CreateClient("ServerAPI");
 });
+#endregion
 
+#region Configure Local Storage and Authentication State
 builder.Services.AddBlazoredLocalStorage();
 builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthStateProvider>();
 builder.Services.AddScoped<CustomAuthStateProvider>();
+builder.Services.AddScoped<StateService>();
+
+#endregion
+
+#region Configure Controllers and Database Context
 builder.Services.AddControllers();
 
-// Додаємо AppDbContext з SQL Server
+// Add AppDbContext using SQL Server
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+#endregion
 
-// JWT автентифікація
+#region Configure JWT Authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -48,8 +60,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 builder.Configuration["JWT:SecretKey"] ?? "defaultSecretKey12345678901234567890"))
         };
     });
+#endregion
 
-// Налаштування CORS для дозволу запитів з клієнтського додатку
+#region Configure CORS Policy
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("CorsPolicy", policy =>
@@ -57,50 +70,55 @@ builder.Services.AddCors(options =>
         policy.WithOrigins("*")
               .AllowAnyMethod()
               .AllowAnyHeader()
-              .SetIsOriginAllowed(_ => true); // Будьте обережні з цим в продакшені, це дозволяє всі домени
+              .SetIsOriginAllowed(_ => true); // Caution: This allows all domains; adjust for production.
     });
 });
+#endregion
 
-// Blazor
+#region Configure Blazor Services
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents()
     .AddInteractiveWebAssemblyComponents();
+#endregion
 
+#endregion
+
+#region Build Application and Configure Middleware
 var app = builder.Build();
 
-// Middleware
-// Важливо розмістити UseCors перед UseRouting, UseAuthorization, UseEndpoints
+#region Configure CORS and Debugging Middleware
+// Use CORS policy before routing and authorization
 app.UseCors("CorsPolicy");
 
-// Для відлагодження CORS в режимі розробки
+// Debugging middleware for CORS in development mode
 if (app.Environment.IsDevelopment())
 {
     app.UseWebAssemblyDebugging();
 
     app.Use(async (context, next) =>
     {
-        // Запис всіх заголовків для діагностики
-        Console.WriteLine("------- Запит отримано -------");
-        Console.WriteLine($"Метод: {context.Request.Method}");
-        Console.WriteLine($"Шлях: {context.Request.Path}");
-        Console.WriteLine("Заголовки:");
+        // Log request details for diagnostics
+        Console.WriteLine("------- Request Received -------");
+        Console.WriteLine($"Method: {context.Request.Method}");
+        Console.WriteLine($"Path: {context.Request.Path}");
+        Console.WriteLine("Headers:");
         foreach (var header in context.Request.Headers)
         {
             Console.WriteLine($"  {header.Key}: {header.Value}");
         }
 
-        // Для кроссдоменних запитів реєструємо спеціальні заголовки
+        // Log cross-domain request information if present
         if (context.Request.Headers.ContainsKey("Origin"))
         {
-            Console.WriteLine($"Кросс-доменний запит з: {context.Request.Headers["Origin"]}");
+            Console.WriteLine($"Cross-domain request from: {context.Request.Headers["Origin"]}");
         }
 
         await next();
 
-        // Відстеження відповіді
-        Console.WriteLine("------- Відповідь відправлено -------");
-        Console.WriteLine($"Статус: {context.Response.StatusCode}");
-        Console.WriteLine("Заголовки відповіді:");
+        // Log response details for diagnostics
+        Console.WriteLine("------- Response Sent -------");
+        Console.WriteLine($"Status: {context.Response.StatusCode}");
+        Console.WriteLine("Response Headers:");
         foreach (var header in context.Response.Headers)
         {
             Console.WriteLine($"  {header.Key}: {header.Value}");
@@ -112,19 +130,26 @@ else
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
     app.UseHsts();
 }
+#endregion
 
+#region Configure Standard Middleware
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseAntiforgery();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapStaticAssets();
+#endregion
 
+#region Configure Blazor Endpoints and Controllers
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()
     .AddInteractiveWebAssemblyRenderMode();
 
 app.MapControllers();
 app.MapFallbackToFile("index.html");
+#endregion
+
+#endregion
 
 app.Run();

@@ -4,21 +4,22 @@
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
 @using System.ComponentModel.DataAnnotations
-@rendermode InteractiveWebAssembly
 
-<!-- TailwindCSS -->
+<!-- Tailwind CSS -->
 <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 
-<div class="flex items-center justify-center min-h-screen bg-gray-100">
+<!-- Registration Form Layout -->
+<div class="flex flex-col items-center justify-center min-h-screen w-full bg-gray-100">
     <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 w-full max-w-sm">
         <h2 class="text-2xl font-bold text-center mb-6">Sign Up</h2>
 
-        <!-- Використовуємо звичайну div замість EditForm для уникнення проблем з автоматичною відправкою -->
+        <!-- Registration Form Content -->
         <div>
-            <!-- Поля вводу -->
+            <!-- First Name Input Field -->
             <div class="mb-4">
                 <label class="block text-gray-700 text-sm font-bold mb-1">First Name *</label>
-                <input @bind="userModel.FirstName" placeholder="Enter your first name"
+                <input @bind="userModel.FirstName"
+                       placeholder="Enter your first name"
                        class="shadow border rounded w-full py-2 px-3" />
                 @if (string.IsNullOrEmpty(userModel.FirstName) && showValidation)
                 {
@@ -26,9 +27,11 @@
                 }
             </div>
 
+            <!-- Last Name Input Field -->
             <div class="mb-4">
                 <label class="block text-gray-700 text-sm font-bold mb-1">Last Name *</label>
-                <input @bind="userModel.LastName" placeholder="Enter your last name"
+                <input @bind="userModel.LastName"
+                       placeholder="Enter your last name"
                        class="shadow border rounded w-full py-2 px-3" />
                 @if (string.IsNullOrEmpty(userModel.LastName) && showValidation)
                 {
@@ -36,9 +39,11 @@
                 }
             </div>
 
+            <!-- Email Input Field -->
             <div class="mb-4">
                 <label class="block text-gray-700 text-sm font-bold mb-1">Email *</label>
-                <input type="email" @bind="userModel.Email" placeholder="Enter your email"
+                <input type="email" @bind="userModel.Email"
+                       placeholder="Enter your email"
                        class="shadow border rounded w-full py-2 px-3" />
                 @if (string.IsNullOrEmpty(userModel.Email) && showValidation)
                 {
@@ -50,9 +55,11 @@
                 }
             </div>
 
+            <!-- Password Input Field -->
             <div class="mb-4">
                 <label class="block text-gray-700 text-sm font-bold mb-1">Password *</label>
-                <input type="password" @bind="userModel.Password" placeholder="Enter your password"
+                <input type="password" @bind="userModel.Password"
+                       placeholder="Enter your password"
                        class="shadow border rounded w-full py-2 px-3" />
                 @if (string.IsNullOrEmpty(userModel.Password) && showValidation)
                 {
@@ -64,9 +71,11 @@
                 }
             </div>
 
+            <!-- Confirm Password Input Field -->
             <div class="mb-4">
                 <label class="block text-gray-700 text-sm font-bold mb-1">Confirm Password *</label>
-                <input type="password" @bind="confirmPassword" placeholder="Confirm your password"
+                <input type="password" @bind="confirmPassword"
+                       placeholder="Confirm your password"
                        class="shadow border rounded w-full py-2 px-3" />
                 @if (userModel.Password != confirmPassword && showValidation && !string.IsNullOrEmpty(confirmPassword))
                 {
@@ -74,14 +83,14 @@
                 }
             </div>
 
-            <!-- Кнопка реєстрації як звичайна кнопка, не submit -->
-            <button type="button" @onclick="TestButtonClick"
+            <!-- Register Button (non-submit) -->
+            <button type="button" @onclick="HandleRegisterClick"
                     class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full">
                 Register
             </button>
         </div>
 
-        <!-- Повідомлення -->
+        <!-- Display Status or Error Message -->
         @if (!string.IsNullOrEmpty(message))
         {
             <div class="mt-4 text-center @(message.Contains("successfully") ? "text-green-500" : "text-red-500")">
@@ -89,7 +98,7 @@
             </div>
         }
 
-        <!-- Індикатор завантаження -->
+        <!-- Loading Indicator -->
         @if (isLoading)
         {
             <div class="mt-4 text-center text-blue-500">
@@ -97,7 +106,7 @@
             </div>
         }
 
-        <!-- Посилання на логін -->
+        <!-- Link to Login Page -->
         <div class="mt-4 text-center text-sm text-gray-600">
             Already have an account?
             <a href="/login-register" class="text-blue-500 hover:underline font-medium">Login</a>
@@ -106,13 +115,12 @@
 </div>
 
 @code {
+    // Model for registration form data.
     private RegisterModel userModel = new();
     private string? confirmPassword;
     private string? message;
     private bool showValidation = false;
     private bool isLoading = false;
-
-    // Флаг, який показує, чи компонент вже було відрендерено
     private bool hasRendered = false;
 
     public class RegisterModel
@@ -122,31 +130,26 @@
         public string? Email { get; set; }
         public string? Password { get; set; }
     }
-    private void TestButtonClick()
-    {
-        Console.WriteLine("Кнопка натиснута");
-    }
-    // БЕЗПЕЧНИЙ метод для виклику JS, який не викличе помилку під час пререндерингу
-    private async Task SafeJsLogAsync(string message, params object[] args)
+
+    private async Task SafeJsLogAsync(string logMessage, params object[] args)
     {
         try
         {
             if (hasRendered)
             {
-                await JSRuntime.InvokeVoidAsync("console.log", new object[] { message }.Concat(args).ToArray());
+                await JSRuntime.InvokeVoidAsync("console.log", new object[] { logMessage }.Concat(args).ToArray());
             }
             else
             {
-                Console.WriteLine($"[JS Log skipped during prerender]: {message}");
+                Console.WriteLine($"[JS Log skipped during prerender]: {logMessage}");
             }
         }
         catch
         {
-            // Ігноруємо помилки JavaScript під час пререндерингу
+            // Suppress JS errors during prerendering
         }
     }
 
-    // Переміщуємо виклик JavaScript у OnAfterRenderAsync замість OnInitializedAsync
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -173,7 +176,6 @@
     {
         showValidation = true;
 
-        // Базова валідація форми
         if (string.IsNullOrEmpty(userModel.FirstName) ||
             string.IsNullOrEmpty(userModel.LastName) ||
             string.IsNullOrEmpty(userModel.Email) ||
@@ -184,7 +186,6 @@
         {
             return false;
         }
-
         return true;
     }
 
@@ -203,7 +204,6 @@
             isLoading = true;
             await SafeJsLogAsync("Sending registration data", userModel);
 
-            // Використовуємо відносний URL для API
             var baseUri = Navigation.BaseUri;
             var response = await Http.PostAsJsonAsync($"{baseUri}api/account/register", userModel);
 
@@ -217,13 +217,15 @@
                 message = "User successfully registered!";
                 await SafeJsLogAsync("Registration successful");
 
-                // Затримка перед переходом
+                // Brief delay before redirect
                 await Task.Delay(1500);
                 Navigation.NavigateTo("/login-register");
             }
             else
             {
-                message = !string.IsNullOrEmpty(responseContent) ? responseContent : "Registration failed";
+                message = !string.IsNullOrEmpty(responseContent)
+                    ? responseContent
+                    : "Registration failed";
                 await SafeJsLogAsync("Registration failed:", message);
             }
         }

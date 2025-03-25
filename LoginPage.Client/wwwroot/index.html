@@ -1,21 +1,32 @@
 ﻿<!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- Meta tags and base URL -->
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <base href="/" />
 
-    <!-- Styles -->
-    <link rel="stylesheet" href="bootstrap/bootstrap.min.css" />
-    <link rel="stylesheet" href="app.css" />
-    <link rel="stylesheet" href="LoginPage.styles.css" />
+    <!-- External Stylesheets and Favicon -->
+    <link href="css/app.css" rel="stylesheet" />
+    <link href="css/MainLayout.razor.css" rel="stylesheet" />
+    <link href="css/NavMenu.razor.css" rel="stylesheet" />
+    <link href="css/bootstrap.min.css" rel="stylesheet" />
     <link rel="icon" type="image/png" href="favicon.png" />
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
 
+
+
+    <!-- Blazor Head Outlet -->
     <HeadOutlet />
 
+    <!-- Inline Styles for Loading Screen and App Transition -->
     <style>
-        /* Loading screen styles */
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+        }
+        /* Styles for the loading screen */
         #loading-screen {
             position: fixed;
             top: 0;
@@ -39,6 +50,32 @@
             max-width: 5000px;
         }
 
+        .logo-image-menu {
+            max-width: 75%;
+        }
+        .fixed-bottom-right {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 320px;
+            height: 50px;
+            background-color: #057CFF;
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            font-size: 16px;
+            cursor: pointer;
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+            .fixed-bottom-right:disabled {
+                background-color: #C0C0C0;
+                cursor: not-allowed;
+            }
         .loading-spinner {
             width: 50px;
             height: 50px;
@@ -57,7 +94,7 @@
                 transform: rotate(360deg);
             }
         }
-
+        /* Hidden app container that fades in after loading completes */
         #app {
             visibility: hidden;
             opacity: 0;
@@ -72,7 +109,7 @@
 </head>
 
 <body class="bg-gray-100">
-    <!-- Loading Screen -->
+    <!-- Loading Screen displayed while Blazor initializes -->
     <div id="loading-screen">
         <div class="logo-container">
             <img src="logo.png" alt="CLTI Diagnosis Logo" class="logo-image" />
@@ -81,43 +118,42 @@
         <p class="mt-3">Loading...</p>
     </div>
 
-    <!-- Blazor App Root -->
+    <!-- Blazor App Root Element -->
     <div id="app"></div>
 
+    <!-- Blazor WebAssembly Script -->
     <script src="_framework/blazor.webassembly.js"></script>
 
-    <!-- Script to handle transition from loading screen to app -->
+    <!-- Transition Script: Hides the loading screen and displays the app -->
     <script>
-        // Function to hide loading screen and show app
+        // Function to fade out the loading screen and reveal the Blazor app
         function showApp() {
             const loadingScreen = document.getElementById('loading-screen');
             const app = document.getElementById('app');
 
-            // Fade out loading screen
+            // Fade out the loading screen
             loadingScreen.style.opacity = '0';
 
-            // Show app
+            // Reveal the app
             app.classList.add('loaded');
 
-            // Remove loading screen after animation completes
+            // Remove the loading screen element after the transition completes
             setTimeout(() => {
                 loadingScreen.style.display = 'none';
-            }, 500);
+            }, 100);
         }
 
-        // Check if Blazor is loaded and initialized
+        // Wait for the DOM to load and Blazor to initialize
         document.addEventListener('DOMContentLoaded', function () {
-            // Wait for Blazor to start
+            // Use Blazor's event if available
             if (window.Blazor) {
                 Blazor.addEventListener('afterStarted', showApp);
             } else {
-                // Fallback for older Blazor versions
+                // Fallback: Check periodically if Blazor has initialized
                 setTimeout(() => {
                     if (document.querySelector('.blazor-error-ui')) {
-                        // If error UI is present, Blazor has initialized (even with errors)
                         showApp();
                     } else {
-                        // Keep checking
                         const checkInterval = setInterval(() => {
                             if (document.querySelector('.blazor-error-ui') || window._blazorInitialized) {
                                 clearInterval(checkInterval);
@@ -125,11 +161,10 @@
                             }
                         }, 100);
                     }
-                }, 1000);
+                }, 100);
             }
-
-            // Safety timeout - show the app after 10 seconds regardless
-            setTimeout(showApp, 10000);
+            // Safety timeout: Show the app after 10 seconds regardless
+            setTimeout(showApp, 250);
         });
     </script>
 </body>

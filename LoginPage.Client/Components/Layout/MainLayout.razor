@@ -1,19 +1,6 @@
-﻿@inject NavigationManager Navigation
-@using LoginPage.Client.Shared
+﻿@inherits LayoutComponentBase
 @using Microsoft.AspNetCore.Components.Authorization
-@inherits LayoutComponentBase
-@rendermode InteractiveWebAssembly
-
-@code {
-    private bool IsAuthPage()
-    {
-        var currentPath = new Uri(Navigation.Uri).LocalPath.ToLower();
-        return currentPath == "/register" || currentPath == "/login-register";
-    }
-    
-    // We won't need OnAfterRender redirection with the improved logic below
-}
-
+@inject NavigationManager Navigation
 @if (IsAuthPage())
 {
     <div class="auth-page">
@@ -24,22 +11,20 @@ else
 {
     <AuthorizeView>
         <Authorized>
-            <div class="page">
-                <div class="sidebar">
-                    <NavMenu />
-                </div>
-                <main>
-                    <article class="content px-4">
-                        @Body
-                    </article>
-                </main>
-            </div>
+            <LoginPage.Client.Pages.KPI />
         </Authorized>
         <NotAuthorized>
-            <!-- Instead of JavaScript redirection, use a component -->
             <LoginPage.Client.Pages.LoginRegister />
         </NotAuthorized>
     </AuthorizeView>
+}
+
+@code {
+    private bool IsAuthPage()
+    {
+        var currentPath = new Uri(Navigation.Uri).LocalPath.ToLower();
+        return currentPath == "/register" || currentPath == "/login-register";
+    }
 }
 
 <style>

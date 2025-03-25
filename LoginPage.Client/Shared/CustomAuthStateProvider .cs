@@ -6,6 +6,7 @@ using Blazored.LocalStorage;
 public class CustomAuthStateProvider : AuthenticationStateProvider
 {
     private readonly ILocalStorageService _localStorage;
+    // Holds the current user's claims. By default, the user is anonymous.
     private ClaimsPrincipal _user = new(new ClaimsIdentity());
 
     public CustomAuthStateProvider(ILocalStorageService localStorage)
@@ -13,32 +14,43 @@ public class CustomAuthStateProvider : AuthenticationStateProvider
         _localStorage = localStorage;
     }
 
+    /// <summary>
+    /// Gets the current authentication state. 
+    /// If a token exists in local storage, the user is considered authenticated.
+    /// Otherwise, returns an anonymous user.
+    /// </summary>
     public override async Task<AuthenticationState> GetAuthenticationStateAsync()
     {
         try
         {
+            // Retrieve the token from local storage.
             var token = await _localStorage.GetItemAsync<string>("authToken");
 
             if (!string.IsNullOrEmpty(token))
             {
+                // Create a new ClaimsIdentity with an authentication type (e.g., "jwt")
                 var identity = new ClaimsIdentity(new[]
                 {
-                new Claim(ClaimTypes.Name, "User")
-            }, "jwt");
+                    new Claim(ClaimTypes.Name, "User")
+                }, "jwt");
 
                 _user = new ClaimsPrincipal(identity);
             }
         }
         catch (InvalidOperationException)
         {
-            // Якщо JS interop недоступний (пререндиринг), повертаємо анонімного користувача.
+            // If JavaScript interop is not available (e.g., during prerendering),
+            // return an anonymous user.
             _user = new ClaimsPrincipal(new ClaimsIdentity());
         }
 
         return new AuthenticationState(_user);
     }
 
-    // Додатковий метод для примусового оновлення стану після завантаження клієнтського JS середовища:
+    /// <summary>
+    /// Refreshes the authentication state.
+    /// This is useful after the JS environment has loaded or when a token change occurs.
+    /// </summary>
     public async Task RefreshAuthenticationStateAsync()
     {
         var token = await _localStorage.GetItemAsync<string>("authToken");
@@ -47,8 +59,8 @@ public class CustomAuthStateProvider : AuthenticationStateProvider
         {
             var identity = new ClaimsIdentity(new[]
             {
-            new Claim(ClaimTypes.Name, "User")
-        }, "jwt");
+                new Claim(ClaimTypes.Name, "User")
+            }, "jwt");
 
             _user = new ClaimsPrincipal(identity);
         }
@@ -57,12 +69,18 @@ public class CustomAuthStateProvider : AuthenticationStateProvider
             _user = new ClaimsPrincipal(new ClaimsIdentity());
         }
 
+        // Notify subscribers that the authentication state has changed.
         NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(_user)));
     }
 
+    /// <summary>
+    /// Logs in the user by saving the token to local storage and updating the authentication state.
+    /// </summary>
+    /// <param name="token">The authentication token.</param>
     public async Task Login(string token)
     {
         await _localStorage.SetItemAsync("authToken", token);
+
         var identity = new ClaimsIdentity(new[]
         {
             new Claim(ClaimTypes.Name, "User")
@@ -72,6 +90,9 @@ public class CustomAuthStateProvider : AuthenticationStateProvider
         NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(_user)));
     }
 
+    /// <summary>
+    /// Logs out the user by removing the token from local storage and resetting the authentication state.
+    /// </summary>
     public async Task Logout()
     {
         await _localStorage.RemoveItemAsync("authToken");

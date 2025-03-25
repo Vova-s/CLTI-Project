@@ -1,26 +1,114 @@
-﻿@page "/KPI-page"
+﻿@page "/kpi-page"
+@attribute [Authorize]
+@using LoginPage.Client.Shared
+@using Microsoft.AspNetCore.Authorization
+@inject StateService StateService
+@inject NavigationManager NavigationManager
 
-<div class="flex h-screen bg-gray-100">
-    <!-- Sidebar -->
-    <aside class="w-1/4 bg-blue-100 p-6">
-        <h2 class="text-2xl font-bold mb-4">CLTI алгоритм</h2>
 
-        <div class="border-t pt-4">
-            <h3 class="text-lg font-semibold">Значущість гемодинамічних змін</h3>
-            <div class="mt-2">
-                <input type="checkbox" id="kpi" @bind="isKpiChecked" class="mr-2">
-                <label for="kpi" class="text-gray-800">КПІ</label>
-            </div>
-        </div>
-    </aside>
+
+<div style="position: relative; width: auto; height: auto; background: #EEEEF0;">
+
+    <NavMenu />
 
     <!-- Main Content -->
-    <main class="flex-1 p-10 bg-white">
-        <h3 class="text-xl font-semibold mb-4">Значення КПІ (кісточково-плечовий індекс)</h3>
-        <input type="text" placeholder="Введіть значення" class="w-full p-2 border rounded-md focus:outline-none focus:ring focus:ring-blue-300" />
-    </main>
+    <div style="position: absolute; left: 382px; top: 72px; width: 640px;">
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+            <div style="font-weight: 600; font-size: 14px; color: #191919;">
+                Значення КПІ (кісточково-плечовий індекс)
+            </div>
+
+            <div style="box-sizing: border-box; padding: 12px 20px; width: 400px; height: 46px; background: #EEEEF0; border: 1px solid #E0E0E0; border-radius: 8px;">
+                <input type="text"
+                       @bind-value="kpiValueString"
+                       @oninput="HandleKpiInput"
+                       placeholder="Введіть значення"
+                       style="width: 100%; background: transparent; border: none; outline: none; font-size: 14px; color: #000;" />
+            </div>
+        </div>
+
+        @if (HasKpiValue())
+        {
+            <div style="margin-top: 20px;">
+                @if (StateService.ShowKpiNormal)
+                {
+                    <div>Значення КПІ є в нормі</div>
+                }
+
+                @if (StateService.ShowPpiField)
+                {
+                    <div>Можлива кальцифікація артерій, необхідно додатково виміряти ППІ</div>
+
+                    <div style="margin-top: 24px; font-weight: 600; font-size: 14px; color: #191919;">
+                        Значення ППІ (пальце-плечовий індекс)
+                    </div>
+
+                    <div style="margin-top: 16px; padding: 12px 20px; width: 400px; height: 46px; background: #EEEEF0; border: 1px solid #E0E0E0; border-radius: 8px;">
+                        <input type="text"
+                               @bind-value="ppiValue"
+                               @bind-value:after="UpdatePpiValue"
+                               placeholder="Введіть значення"
+                               style="width: 100%; background: transparent; border: none; outline: none; font-size: 14px; color: #000;" />
+                    </div>
+                }
+            </div>
+        }
+
+        <!-- Button -->
+        <div class="fixed-bottom-right">
+            @if (StateService.ShowKpiLow || (StateService.ShowPpiField && !string.IsNullOrEmpty(ppiValue)))
+            {
+                <button @onclick="Continue" style="width: 100%; height: 100%; background: #057CFF; border-radius: 8px; border: none; color: white; font-weight: 600; font-size: 16px;">
+                    Продовжити
+                </button>
+            }
+            else if (StateService.ShowKpiNormal)
+            {
+                <button @onclick="Finish" style="width: 100%; height: 100%; background: #057CFF; border-radius: 8px; border: none; color: white; font-weight: 600; font-size: 16px;">
+                    Закінчити
+                </button>
+            }
+            else
+            {
+                <button disabled style="width: 100%; height: 100%; background: #C0C0C0; border-radius: 8px; border: none; color: white; font-weight: 600; font-size: 16px;">
+                    Продовжити
+                </button>
+            }
+        </div>
+    </div>
 </div>
 
 @code {
-    private bool isKpiChecked = false;
+    private string kpiValueString = "";
+    private string ppiValue = "";
+
+    private bool HasKpiValue() => StateService.KpiValue > 0;
+    private async Task HandleKpiInput(ChangeEventArgs e)
+    {
+        kpiValueString = e.Value?.ToString() ?? "";
+        ProcessKpiValue();
+    }
+    private void ProcessKpiValue()
+    {
+        if (double.TryParse(kpiValueString.Replace(',', '.'), System.Globalization.NumberStyles.Any,
+            System.Globalization.CultureInfo.InvariantCulture, out double value))
+        {
+            StateService.UpdateKpiValue(value);
+        }
+        else
+        {
+            StateService.UpdateKpiValue(0);
+        }
+    }
+
+    private void UpdatePpiValue() => StateService.PpiValue = ppiValue;
+
+    private void Continue() => NavigationManager.NavigateTo("/next-step");
+
+    private void Finish()
+    {
+        kpiValueString = "";
+        ppiValue = "";
+        StateService.Reset();
+    }
 }

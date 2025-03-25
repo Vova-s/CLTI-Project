@@ -1,18 +1,18 @@
 ﻿@page "/login-register"
 @using Blazored.LocalStorage
 @using Microsoft.JSInterop
-@rendermode InteractiveAuto
 @inject NavigationManager Navigation
 @inject HttpClient Http
 @inject CustomAuthStateProvider AuthProvider
 @inject IJSRuntime JSRuntime
 @inject ILocalStorageService LocalStorage
-
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
+<!-- Login Page Markup -->
 <div class="flex flex-col items-center justify-center min-h-screen w-full bg-gray-100">
     <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 w-full max-w-sm">
         <h2 class="text-2xl font-bold text-center mb-6">Login</h2>
 
-        <!-- Email Input -->
+        <!-- Email Input Field -->
         <div class="mb-4">
             <label for="email" class="block text-gray-700 text-sm font-bold mb-2">Email *</label>
             <input id="email" @bind="loginUser.Email"
@@ -24,7 +24,7 @@
             }
         </div>
 
-        <!-- Password Input -->
+        <!-- Password Input Field -->
         <div class="mb-4">
             <label for="password" class="block text-gray-700 text-sm font-bold mb-2">Password *</label>
             <input id="password" @bind="loginUser.Password" type="password"
@@ -57,12 +57,13 @@
             }
         </button>
 
+        <!-- Sign Up Link -->
         <div class="mt-4 text-center text-sm text-gray-600">
             Don't have an account?
             <a href="/register" class="text-blue-500 hover:underline font-medium">Sign up</a>
         </div>
 
-        <!-- Display error message if any -->
+        <!-- Error Message Display -->
         @if (!string.IsNullOrEmpty(message))
         {
             <div class="mt-4 text-center text-red-500">@message</div>
@@ -71,45 +72,61 @@
 </div>
 
 @code {
-    // Model for login input
+    // Model representing the user's login credentials.
+    public class LoginModel
+    {
+        public string? Email { get; set; }
+        public string? Password { get; set; }
+    }
+
+    // Holds the login form data.
     private LoginModel loginUser = new();
 
-    // Stores error messages
+    // Stores error or status messages.
     private string message = string.Empty;
 
-    // Validation flag
+    // Flag to control the display of validation messages.
     private bool showValidation = false;
 
-    // Loading indicator
+    // Indicator for the login process.
     private bool isLoading = false;
 
-    // Tracks the "Remember Me" checkbox state
+    // Tracks the state of the "Remember Me" checkbox.
     private bool rememberMe = false;
 
-    // Flag to check if component has rendered
+    // Flag to indicate if the component has rendered to safely call JS.
     private bool hasRendered = false;
 
-    // Safe method for JS calls that won't error during prerendering
+    /// <summary>
+    /// Logs messages to the browser console safely, handling prerendering scenarios.
+    /// </summary>
+    /// <param name="message">Message to log.</param>
+    /// <param name="args">Additional arguments to log.</param>
     private async Task SafeJsLogAsync(string message, params object[] args)
     {
         try
         {
+            // Only invoke JavaScript if the component has rendered.
             if (hasRendered)
             {
                 await JSRuntime.InvokeVoidAsync("console.log", new object[] { message }.Concat(args).ToArray());
             }
             else
             {
+                // Fallback to .NET logging during prerender.
                 Console.WriteLine($"[JS Log skipped during prerender]: {message}");
             }
         }
         catch
         {
-            // Ignore JS errors during prerendering
+            // Suppress any JS errors during prerendering.
         }
     }
 
-    // Move JavaScript calls to OnAfterRender
+    /// <summary>
+    /// Lifecycle method called after the component is rendered.
+    /// Marks the component as rendered to enable safe JS invocation.
+    /// </summary>
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -119,10 +136,16 @@
         }
     }
 
+    /// <summary>
+    /// Validates the login form inputs.
+    /// </summary>
+    /// <returns>True if form is valid; otherwise, false.</returns>
     private bool ValidateForm()
     {
+        // Enable validation messages.
         showValidation = true;
 
+        // Ensure both email and password are provided.
         if (string.IsNullOrEmpty(loginUser.Email) || string.IsNullOrEmpty(loginUser.Password))
         {
             return false;
@@ -131,10 +154,16 @@
         return true;
     }
 
+    /// <summary>
+    /// Handles the login button click event.
+    /// Validates the form, attempts login, processes the response,
+    /// updates authentication state, and navigates upon success.
+    /// </summary>
     private async Task HandleLoginClick()
     {
         await SafeJsLogAsync("Login button clicked");
 
+        // Validate the form; if invalid, log and exit.
         if (!ValidateForm())
         {
             await SafeJsLogAsync("Login validation failed");
@@ -143,16 +172,18 @@
 
         try
         {
+            // Indicate that the login process is in progress.
             isLoading = true;
-            StateHasChanged(); // Update UI to show loading state
+            StateHasChanged(); // Update UI
 
             await SafeJsLogAsync("Attempting login with:", loginUser.Email);
 
-            // Using relative URL for API endpoint
+            // Send login request to the API endpoint.
             var response = await Http.PostAsJsonAsync("api/account/login", loginUser);
 
             await SafeJsLogAsync("Login response status:", response.StatusCode);
 
+            // Read the response content.
             var responseContent = await response.Content.ReadAsStringAsync();
             await SafeJsLogAsync("Login response content:", responseContent);
 
@@ -164,13 +195,13 @@
                 {
                     await SafeJsLogAsync("Login successful, saving token");
 
-                    // Save the token in local storage
+                    // Save the token in local storage.
                     await LocalStorage.SetItemAsync("authToken", token);
 
-                    // Update the authentication state
+                    // Update the authentication state.
                     await AuthProvider.Login(token);
 
-                    // Navigate to home page
+                    // Navigate to the home page.
                     Navigation.NavigateTo("/", true);
                 }
                 else
@@ -194,15 +225,9 @@
         }
         finally
         {
+            // Reset the loading indicator.
             isLoading = false;
             StateHasChanged();
         }
-    }
-
-    // Login model representing the user credentials
-    public class LoginModel
-    {
-        public string? Email { get; set; }
-        public string? Password { get; set; }
     }
 }

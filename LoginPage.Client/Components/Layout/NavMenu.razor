@@ -1,80 +1,86 @@
-﻿@inject NavigationManager NavManager
+﻿@using LoginPage.Client.Shared
+@inject StateService StateService
 
-<style>
-    body {
-        font-family: 'Inter', sans-serif;
-    }
+<div style="width: 344px; min-height: 100vh; background: #DADFEA;">
+    <div style="position: absolute; left: 20px; top: 24px; width: 304px; display: flex; flex-direction: column; gap: 24px;">
 
-    .nav-scrollable {
-        width: 250px;
-        height: 100vh;
-    }
+        <!-- Логотип -->
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <img src="logo-menu.png" alt="CLTI Diagnosis Logo" class="logo-image-menu" />
+        </div>
 
-    .nav-link {
-        font-size: 14px;
-        font-weight: 600;
-        color: #191919; /* Змінив колір тексту */
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 10px 0;
-    }
+        <!-- Секція "Значущість" -->
+        <div style="display: flex; flex-direction: column; gap: 16px; width: 304px;">
 
-    .nav-item {
-        font-size: 14px;
-        font-weight: 600;
-        color: #191919; /* Змінив колір тексту */
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 10px 0;
-    }
+            <!-- Розділювач -->
+            <div style="width: 100%; height: 1px; background: #EEEEF0;"></div>
 
-        .nav-link input[type="checkbox"] {
-            width: 16px;
-            height: 16px;
-            accent-color: #007bff;
-        }
-</style>
+            <!-- Заголовок + стрілка -->
+            <div @onclick="ToggleHemodynamicSection" style="display: flex; justify-content: space-between; align-items: center; width: 100%; cursor: pointer;">
+                <h3 style="font-family: 'Inter'; font-weight: 600; font-size: 14px; color: #191919; margin: 0;">
+                    Значущість гемодинамічних змін
+                </h3>
+                <svg width="18" height="18" style="transition: transform 0.2s ease; transform: @(showHemodynamic ? "rotate(180deg)" : "rotate(0deg)")" viewBox="0 0 18 18" fill="none">
+                    <path d="M14.25 11.25L9 6L3.75 11.25" stroke="#646464" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+            </div>
 
-<div class="top-row ps-3 navbar bg-blue-100 p-6">
-    <div class="container-fluid bg-blue-100 p-6">
-        <a class="navbar-brand text-lg font-semibold">CLTI алгоритм</a>
+            @if (showHemodynamic)
+            {
+                <!-- Чекбокси -->
+                <div style="display: flex; flex-direction: column; gap: 8px; margin-left: 8px;">
+
+                    <!-- KPI Checkbox -->
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div style="@GetCheckboxStyle(StateService.KpiValue > 0)">
+                            @if (StateService.KpiValue > 0)
+                            {
+                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                    <path d="M10 3L4.5 8.5L2 6" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                            }
+                        </div>
+                        <span style="font-family: 'Inter'; font-size: 12px; color: #000;">КПІ</span>
+                    </div>
+
+                    <!-- PPI Checkbox -->
+                    @if (StateService.IsPpiVisible)
+                    {
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div style="@GetCheckboxStyle(!string.IsNullOrWhiteSpace(StateService.PpiValue))">
+                                @if (!string.IsNullOrWhiteSpace(StateService.PpiValue))
+                                {
+                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                        <path d="M10 3L4.5 8.5L2 6" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                                    </svg>
+                                }
+                            </div>
+                            <span style="font-family: 'Inter'; font-size: 12px; color: #000;">ППІ</span>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
     </div>
 </div>
 
-<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+@code {
+    private bool showHemodynamic = true;
 
-<div class="nav-scrollable bg-blue-100 p-6" onclick="document.querySelector('.navbar-toggler').click()">
-    <nav class="flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <input type="checkbox" class="mr-2" checked> Home
-            </NavLink>
-        </div>
+    protected override void OnInitialized()
+    {
+        StateService.OnChange += StateHasChanged;
+    }
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="counter">
-                <input type="checkbox" class="mr-2"> Counter
-            </NavLink>
-        </div>
+    private string GetCheckboxStyle(bool active) =>
+        $"width: 16px; height: 16px; border-radius: 4px; display: flex; justify-content: center; align-items: center; background: {(active ? "#057CFF" : "#C0C0C0")};";
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="weather">
-                <input type="checkbox" class="mr-2"> Weather
-            </NavLink>
-        </div>
-
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="login-register">
-                <input type="checkbox" class="mr-2"> Login
-            </NavLink>
-        </div>
-
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="KPI-page">
-                <input type="checkbox" class="mr-2"> KPI
-            </NavLink>
-        </div>
-    </nav>
-</div>
+    public void ToggleHemodynamicSection()
+    {
+        showHemodynamic = !showHemodynamic;
+    }
+    public void Dispose()
+    {
+        StateService.OnChange -= StateHasChanged;
+    }
+}

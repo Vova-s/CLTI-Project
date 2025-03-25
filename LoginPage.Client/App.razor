@@ -1,18 +1,28 @@
 ﻿@using Microsoft.AspNetCore.Components.Authorization
 @using LoginPage.Client
 @using LoginPage.Client.Shared
-@using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.Routing
 
+<!--
+  CascadingAuthenticationState supplies the current authentication state
+  to all descendant components.
+-->
 <CascadingAuthenticationState>
+    <!-- Router for authorized routes using the app assembly -->
     <Router AppAssembly="@typeof(App).Assembly">
         <Found Context="routeData">
+            <!--
+              AuthorizeRouteView renders the page only if the user is authorized.
+              Otherwise, it shows the NotAuthorized content.
+            -->
             <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
                 <NotAuthorized>
+                    <!-- Redirect unauthorized users to the login page -->
                     <RedirectToLogin />
                 </NotAuthorized>
             </AuthorizeRouteView>
         </Found>
+        <!-- Layout for routes that are not found -->
         <NotFound>
             <LayoutView Layout="@typeof(MainLayout)">
                 <p>Сторінку не знайдено.</p>
@@ -20,16 +30,4 @@
         </NotFound>
     </Router>
 </CascadingAuthenticationState>
-<Router AppAssembly="@typeof(Program).Assembly"
-        AdditionalAssemblies="new[] { typeof(LoginPage.Client.App).Assembly }">
-    <Found Context="routeData">
-        <RouteView RouteData="@routeData" DefaultLayout="@typeof(LoginPage.Client.Components.Layout.MainLayout)" />
-        <FocusOnNavigate RouteData="@routeData" Selector="h1" />
-    </Found>
-    <NotFound>
-        <LayoutView Layout="@typeof(LoginPage.Client.Components.Layout.MainLayout)">
-            <p>Page not found.</p>
-        </LayoutView>
-    </NotFound>
-</Router>
 
