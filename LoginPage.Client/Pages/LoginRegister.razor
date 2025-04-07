@@ -1,4 +1,5 @@
 ﻿@page "/login-register"
+@page "/login"
 @using Blazored.LocalStorage
 @using Microsoft.JSInterop
 @inject NavigationManager Navigation
@@ -97,6 +98,17 @@
     // Flag to indicate if the component has rendered to safely call JS.
     private bool hasRendered = false;
 
+    // JavaScript для виправлення URL після успішного входу
+    private string fixUrlScript = @"
+        function fixLoginRedirect() {
+            if (window.location.pathname.includes('/login') || window.location.pathname.includes('/login-register')) {
+                window.location.href = '/';
+                return true;
+            }
+            return false;
+        }
+    ";
+
     /// <summary>
     /// Logs messages to the browser console safely, handling prerendering scenarios.
     /// </summary>
@@ -133,6 +145,16 @@
         {
             hasRendered = true;
             await SafeJsLogAsync("Login component initialized");
+
+            // Реєструємо JavaScript функцію для виправлення URL
+            await JSRuntime.InvokeVoidAsync("eval", fixUrlScript);
+
+            // Перевіряємо, якщо вже аутентифіковані, перенаправляємо на головну
+            var token = await LocalStorage.GetItemAsync<string>("authToken");
+            if (!string.IsNullOrEmpty(token))
+            {
+                await JSRuntime.InvokeVoidAsync("fixLoginRedirect");
+            }
         }
     }
 
@@ -201,8 +223,13 @@
                     // Update the authentication state.
                     await AuthProvider.Login(token);
 
-                    // Navigate to the home page.
-                    Navigation.NavigateTo("/", true);
+                    // Використовуємо JavaScript для правильного перенаправлення
+                    bool redirected = await JSRuntime.InvokeAsync<bool>("fixLoginRedirect");
+                    if (!redirected)
+                    {
+                        // Якщо JS-перенаправлення не спрацювало, використовуємо .NET
+                        Navigation.NavigateTo("/", true);
+                    }
                 }
                 else
                 {

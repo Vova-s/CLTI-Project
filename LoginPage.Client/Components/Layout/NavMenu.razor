@@ -1,75 +1,160 @@
 ﻿@using LoginPage.Client.Shared
+@using Microsoft.AspNetCore.Components.Authorization
 @inject StateService StateService
+@inject NavigationManager NavigationManager
+@inject CustomAuthStateProvider AuthProvider
+@inject Blazored.LocalStorage.ILocalStorageService LocalStorage
+@inject IJSRuntime JSRuntime
 
-<div style="width: 344px; min-height: 100vh; background: #DADFEA;">
-    <div style="position: absolute; left: 20px; top: 24px; width: 304px; display: flex; flex-direction: column; gap: 24px;">
+<div style="width: 344px; min-height: 100vh; background: #DADFEA; display: flex; flex-direction: column; justify-content: space-between;">
+    <div>
+        <div style="position: relative; left: 20px; top: 24px; width: 304px; display: flex; flex-direction: column; gap: 24px;">
 
-        <!-- Логотип -->
-        <div style="display: flex; align-items: center; gap: 8px;">
-            <img src="logo-menu.png" alt="CLTI Diagnosis Logo" class="logo-image-menu" />
-        </div>
-
-        <!-- Секція "Значущість" -->
-        <div style="display: flex; flex-direction: column; gap: 16px; width: 304px;">
-
-            <!-- Розділювач -->
-            <div style="width: 100%; height: 1px; background: #EEEEF0;"></div>
-
-            <!-- Заголовок + стрілка -->
-            <div @onclick="ToggleHemodynamicSection" style="display: flex; justify-content: space-between; align-items: center; width: 100%; cursor: pointer;">
-                <h3 style="font-family: 'Inter'; font-weight: 600; font-size: 14px; color: #191919; margin: 0;">
-                    Значущість гемодинамічних змін
-                </h3>
-                <svg width="18" height="18" style="transition: transform 0.2s ease; transform: @(showHemodynamic ? "rotate(180deg)" : "rotate(0deg)")" viewBox="0 0 18 18" fill="none">
-                    <path d="M14.25 11.25L9 6L3.75 11.25" stroke="#646464" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
-                </svg>
+            <!-- Логотип -->
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <img src="logo-menu.png" alt="CLTI Diagnosis Logo" class="logo-image-menu" />
             </div>
 
-            @if (showHemodynamic)
-            {
-                <!-- Чекбокси -->
-                <div style="display: flex; flex-direction: column; gap: 8px; margin-left: 8px;">
+            <!-- Секція "Значущість" -->
+            <div style="display: flex; flex-direction: column; gap: 16px; width: 304px;">
 
-                    <!-- KPI Checkbox -->
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <div style="@GetCheckboxStyle(StateService.KpiValue > 0)">
-                            @if (StateService.KpiValue > 0)
-                            {
-                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                                    <path d="M10 3L4.5 8.5L2 6" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
-                                </svg>
-                            }
-                        </div>
-                        <span style="font-family: 'Inter'; font-size: 12px; color: #000;">КПІ</span>
-                    </div>
+                <!-- Розділювач -->
+                <div style="width: 100%; height: 1px; background: #EEEEF0;"></div>
 
-                    <!-- PPI Checkbox -->
-                    @if (StateService.IsPpiVisible)
-                    {
+                <!-- Заголовок + стрілка -->
+                <div @onclick="ToggleHemodynamicSection" style="display: flex; justify-content: space-between; align-items: center; width: 100%; cursor: pointer;">
+                    <h3 style="font-family: 'Inter'; font-weight: 600; font-size: 14px; color: #191919; margin: 0;">
+                        Значущість гемодинамічних змін
+                    </h3>
+                    <svg width="18" height="18" style="transition: transform 0.2s ease; transform: @(showHemodynamic ? "rotate(180deg)" : "rotate(0deg)")" viewBox="0 0 18 18" fill="none">
+                        <path d="M14.25 11.25L9 6L3.75 11.25" stroke="#646464" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                </div>
+
+                @if (showHemodynamic)
+                {
+                    <!-- Чекбокси -->
+                    <div style="display: flex; flex-direction: column; gap: 8px; margin-left: 8px;">
+
+                        <!-- KPI Checkbox -->
                         <div style="display: flex; align-items: center; gap: 10px;">
-                            <div style="@GetCheckboxStyle(!string.IsNullOrWhiteSpace(StateService.PpiValue))">
-                                @if (!string.IsNullOrWhiteSpace(StateService.PpiValue))
+                            <div style="@GetCheckboxStyle(StateService.KpiValue > 0)">
+                                @if (StateService.KpiValue > 0)
                                 {
                                     <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
                                         <path d="M10 3L4.5 8.5L2 6" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
                                     </svg>
                                 }
                             </div>
-                            <span style="font-family: 'Inter'; font-size: 12px; color: #000;">ППІ</span>
+                            <span style="font-family: 'Inter'; font-size: 12px; color: #000;">КПІ</span>
                         </div>
-                    }
-                </div>
-            }
+
+                        <!-- PPI Checkbox -->
+                        @if (StateService.IsPpiVisible)
+                        {
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <div style="@GetCheckboxStyle(!string.IsNullOrWhiteSpace(StateService.PpiValue))">
+                                    @if (!string.IsNullOrWhiteSpace(StateService.PpiValue))
+                                    {
+                                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                            <path d="M10 3L4.5 8.5L2 6" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                                        </svg>
+                                    }
+                                </div>
+                                <span style="font-family: 'Inter'; font-size: 12px; color: #000;">ППІ</span>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
         </div>
+    </div>
+
+    <!-- Футер з інформацією про користувача -->
+    <div style="padding: 20px; border-top: 1px solid #EEEEF0; position: relative;">
+        <div @onclick="ToggleUserMenu" style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+            <div style="width: 32px; height: 32px; border-radius: 50%; background: #057CFF; display: flex; justify-content: center; align-items: center;">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M8 8C10.21 8 12 6.21 12 4C12 1.79 10.21 0 8 0C5.79 0 4 1.79 4 4C4 6.21 5.79 8 8 8ZM8 10C5.33 10 0 11.34 0 14V16H16V14C16 11.34 10.67 10 8 10Z" fill="white" />
+                </svg>
+            </div>
+            <div style="display: flex; flex-direction: column;">
+                <span style="font-family: 'Inter'; font-weight: 600; font-size: 12px; color: #191919;">@username</span>
+                <span style="font-family: 'Inter'; font-size: 10px; color: #646464;">@useremail</span>
+            </div>
+            <svg width="16" height="16" style="margin-left: auto; transition: transform 0.2s ease; transform: @(showUserMenu ? "rotate(180deg)" : "rotate(0deg)")" viewBox="0 0 16 16" fill="none">
+                <path d="M12 6L8 10L4 6" stroke="#646464" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+        </div>
+
+        <!-- Випадаюче меню користувача -->
+        @if (showUserMenu)
+        {
+            <div style="position: absolute; bottom: 70px; left: 0; width: 100%; background: white; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); z-index: 10;">
+                <div @onclick="NavigateToSettings" style="padding: 12px 20px; display: flex; align-items: center; gap: 10px; cursor: pointer; hover:background-color: #f3f4f6;">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M8 10C9.10457 10 10 9.10457 10 8C10 6.89543 9.10457 6 8 6C6.89543 6 6 6.89543 6 8C6 9.10457 6.89543 10 8 10Z" stroke="#646464" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                        <path d="M12.9332 8.00004C12.9332 8.00004 12.9999 7.33337 12.9999 6.66671C12.9999 6.00004 12.9332 5.33337 12.9332 5.33337M3.06654 8.00004C3.06654 8.00004 2.99988 7.33337 2.99988 6.66671C2.99988 6.00004 3.06654 5.33337 3.06654 5.33337M14.6666 8.00004C14.6666 8.00004 14.6666 8.66671 14.6666 9.33337C14.6666 10 14.6666 10.6667 14.6666 10.6667M1.33321 8.00004C1.33321 8.00004 1.33321 8.66671 1.33321 9.33337C1.33321 10 1.33321 10.6667 1.33321 10.6667M12.9332 10.6667C12.9332 10.6667 12.9999 11.3334 12.9999 12C12.9999 12.6667 12.9332 13.3334 12.9332 13.3334M3.06654 10.6667C3.06654 10.6667 2.99988 11.3334 2.99988 12C2.99988 12.6667 3.06654 13.3334 3.06654 13.3334" stroke="#646464" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                    <span style="font-family: 'Inter'; font-size: 14px; color: #191919;">Налаштування</span>
+                </div>
+                <div style="width: 100%; height: 1px; background: #EEEEF0;"></div>
+                <div @onclick="LogoutWithReload" style="padding: 12px 20px; display: flex; align-items: center; gap: 10px; cursor: pointer; hover:background-color: #f3f4f6;">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M6 14H3.33333C2.97971 14 2.64057 13.8595 2.39052 13.6095C2.14048 13.3594 2 13.0203 2 12.6667V3.33333C2 2.97971 2.14048 2.64057 2.39052 2.39052C2.64057 2.14048 2.97971 2 3.33333 2H6" stroke="#dc2626" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                        <path d="M10.6666 11.3333L14 8L10.6666 4.66667" stroke="#dc2626" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                        <path d="M14 8H6" stroke="#dc2626" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                    <span style="font-family: 'Inter'; font-size: 14px; color: #dc2626;">Вийти</span>
+                </div>
+            </div>
+        }
     </div>
 </div>
 
 @code {
     private bool showHemodynamic = true;
+    private bool showUserMenu = false;
+    private string username = "Користувач";
+    private string useremail = "user@example.com";
 
-    protected override void OnInitialized()
+    // Додаємо скрипт для перезавантаження сторінки
+    private string logoutScript = @"
+        function hardReloadToLoginPage() {
+            localStorage.removeItem('authToken');
+            window.location.href = '/login-register';
+            return true;
+        }
+    ";
+
+    protected override async Task OnInitializedAsync()
     {
         StateService.OnChange += StateHasChanged;
+        await GetUserInfoFromLocalStorage();
+
+        // Реєструємо JS функцію для виходу
+        await JSRuntime.InvokeVoidAsync("eval", logoutScript);
+    }
+
+    private async Task GetUserInfoFromLocalStorage()
+    {
+        try
+        {
+            // Перевіряємо наявність токена
+            var token = await LocalStorage.GetItemAsync<string>("authToken");
+            if (!string.IsNullOrEmpty(token))
+            {
+                // В реальному додатку тут можна розпарсити токен і витягнути ім'я та емейл
+                // Наприклад, використовуючи бібліотеку JwtDecoder
+                username = "Доктор"; // Приклад, в реальності отримуйте з токена
+                useremail = "doctor@clti.com"; // Приклад, в реальності отримуйте з токена
+            }
+        }
+        catch (Exception ex)
+        {
+            // Логуємо помилку, але не дозволяємо їй зламати UI
+            Console.WriteLine($"Помилка при отриманні інформації користувача: {ex.Message}");
+        }
     }
 
     private string GetCheckboxStyle(bool active) =>
@@ -79,6 +164,54 @@
     {
         showHemodynamic = !showHemodynamic;
     }
+
+    public void ToggleUserMenu()
+    {
+        showUserMenu = !showUserMenu;
+    }
+
+    public void NavigateToSettings()
+    {
+        NavigationManager.NavigateTo("/settings");
+        showUserMenu = false;
+    }
+
+    // Метод для виходу з використанням JS
+    public async Task LogoutWithReload()
+    {
+        showUserMenu = false;
+
+        try
+        {
+            // Оновлюємо стан аутентифікації на рівні C#
+            await AuthProvider.Logout();
+
+            // Видаляємо токен з локального сховища
+            await LocalStorage.RemoveItemAsync("authToken");
+
+            // Використовуємо JS для перезавантаження на коректний URL
+            await JSRuntime.InvokeVoidAsync("eval", @"
+            window.location.href = '/login-register';
+        ");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Помилка при виході з системи: {ex.Message}");
+
+            // Запасний варіант
+            try
+            {
+                await LocalStorage.RemoveItemAsync("authToken");
+                NavigationManager.NavigateTo("/login-register", forceLoad: true);
+            }
+            catch
+            {
+                // Якщо все інше не спрацювало, спробуємо просту навігацію з перезавантаженням
+                NavigationManager.NavigateTo("/login-register", forceLoad: true);
+            }
+        }
+    }
+
     public void Dispose()
     {
         StateService.OnChange -= StateHasChanged;
