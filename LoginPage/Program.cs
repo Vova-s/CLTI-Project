@@ -84,6 +84,8 @@ builder.Services.AddRazorComponents()
 #endregion
 
 #region Build Application and Configure Middleware
+Console.WriteLine("Connection string: " + builder.Configuration.GetConnectionString("DefaultConnection"));
+
 var app = builder.Build();
 
 #region Configure CORS and Debugging Middleware

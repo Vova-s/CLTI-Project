@@ -1,6 +1,8 @@
 ﻿@inherits LayoutComponentBase
 @using Microsoft.AspNetCore.Components.Authorization
 @inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
 @if (IsAuthPage())
 {
     <div class="auth-page">
@@ -11,19 +13,49 @@ else
 {
     <AuthorizeView>
         <Authorized>
-            <LoginPage.Client.Pages.KPI />
+            @Body
         </Authorized>
         <NotAuthorized>
-            <LoginPage.Client.Pages.LoginRegister />
+            <div>Перенаправлення на логін...</div>
         </NotAuthorized>
     </AuthorizeView>
 }
 
 @code {
+    protected override async Task OnInitializedAsync()
+    {
+        AuthenticationStateProvider.AuthenticationStateChanged += OnAuthenticationStateChanged;
+
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (!IsAuthPage() && !authState.User.Identity.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/login-register");
+        }
+    }
+
+    private void OnAuthenticationStateChanged(Task<AuthenticationState> task)
+    {
+        InvokeAsync(async () =>
+        {
+            var authState = await task;
+            if (!authState.User.Identity.IsAuthenticated && !IsAuthPage())
+            {
+                Navigation.NavigateTo("/login-register");
+            }
+
+            StateHasChanged();
+        });
+    }
+
     private bool IsAuthPage()
     {
         var currentPath = new Uri(Navigation.Uri).LocalPath.ToLower();
         return currentPath == "/register" || currentPath == "/login-register";
+    }
+
+    public void Dispose()
+    {
+        AuthenticationStateProvider.AuthenticationStateChanged -= OnAuthenticationStateChanged;
     }
 }
 

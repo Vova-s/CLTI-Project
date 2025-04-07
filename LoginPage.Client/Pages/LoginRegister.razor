@@ -2,12 +2,12 @@
 @page "/login"
 @using Blazored.LocalStorage
 @using Microsoft.JSInterop
-@inject NavigationManager Navigation
+@inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject CustomAuthStateProvider AuthProvider
 @inject IJSRuntime JSRuntime
 @inject ILocalStorageService LocalStorage
-<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
+
 <!-- Login Page Markup -->
 <div class="flex flex-col items-center justify-center min-h-screen w-full bg-gray-100">
     <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 w-full max-w-sm">
@@ -200,8 +200,7 @@
 
             await SafeJsLogAsync("Attempting login with:", loginUser.Email);
 
-            // Send login request to the API endpoint.
-            var response = await Http.PostAsJsonAsync("api/account/login", loginUser);
+            var response = await Http.PostAsJsonAsync($"api/account/login", loginUser);
 
             await SafeJsLogAsync("Login response status:", response.StatusCode);
 
@@ -215,26 +214,15 @@
 
                 if (!string.IsNullOrWhiteSpace(token))
                 {
-                    await SafeJsLogAsync("Login successful, saving token");
-
-                    // Save the token in local storage.
                     await LocalStorage.SetItemAsync("authToken", token);
-
-                    // Update the authentication state.
                     await AuthProvider.Login(token);
 
-                    // Використовуємо JavaScript для правильного перенаправлення
-                    bool redirected = await JSRuntime.InvokeAsync<bool>("fixLoginRedirect");
-                    if (!redirected)
-                    {
-                        // Якщо JS-перенаправлення не спрацювало, використовуємо .NET
-                        Navigation.NavigateTo("/", true);
-                    }
+                    // Чіткий редирект на сторінку KPI після логіну
+                    NavigationManager.NavigateTo("/kpi-page");
                 }
                 else
                 {
                     message = "Authentication failed. No token received.";
-                    await SafeJsLogAsync("No token received");
                 }
             }
             else
