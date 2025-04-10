@@ -1,7 +1,10 @@
 ﻿@inherits LayoutComponentBase
 @using Microsoft.AspNetCore.Components.Authorization
+@using Blazored.LocalStorage
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject ILocalStorageService LocalStorage
+@inject IJSRuntime JSRuntime
 
 @if (IsAuthPage())
 {
@@ -11,26 +14,80 @@
 }
 else
 {
-    <AuthorizeView>
-        <Authorized>
-            @Body
-        </Authorized>
-        <NotAuthorized>
-            <div>Перенаправлення на логін...</div>
-        </NotAuthorized>
-    </AuthorizeView>
+    @if (loading)
+    {
+        <div class="auth-loading">
+            <p>Перевірка автентифікації...</p>
+        </div>
+    }
+    else
+    {
+        <AuthorizeView>
+            <Authorized>
+                @Body
+            </Authorized>
+            <NotAuthorized>
+                @if (!hasRedirected)
+                {
+                    <div>Перенаправлення...</div>
+                }
+            </NotAuthorized>
+        </AuthorizeView>
+    }
 }
 
 @code {
+    private bool loading = true;
+    private bool hasToken = false;
+    private bool hasRedirected = false;
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        // Не виконуємо редірект, якщо перебуваємо на сторінці логіну/реєстрації.
+        if (IsAuthPage())
+        {
+            return;
+        }
+
+        if (firstRender && !hasRedirected)
+        {
+            hasRedirected = true;
+            if (hasToken)
+            {
+                Navigation.NavigateTo("/kpi-page");
+            }
+            else
+            {
+                Navigation.NavigateTo("/login-register");
+            }
+        }
+    }
     protected override async Task OnInitializedAsync()
     {
         AuthenticationStateProvider.AuthenticationStateChanged += OnAuthenticationStateChanged;
-
+        
+        // Перевіряємо наявність токена
+        hasToken = !string.IsNullOrEmpty(await LocalStorage.GetItemAsync<string>("authToken"));
+        
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        if (!IsAuthPage() && !authState.User.Identity.IsAuthenticated)
+        
+        if (!IsAuthPage() && !authState.User.Identity.IsAuthenticated && !hasToken)
         {
             Navigation.NavigateTo("/login-register");
         }
+        
+        loading = false;
+    }
+    
+    private void RefreshPageIfNeeded()
+    {
+        // Використовуємо JS для перезавантаження сторінки, якщо є токен, але автентифікація не спрацювала
+        JSRuntime.InvokeVoidAsync("eval", @"
+            if (!window.authRefreshAttempted) {
+                window.authRefreshAttempted = true;
+                setTimeout(() => window.location.reload(), 500);
+            }
+        ");
     }
 
     private void OnAuthenticationStateChanged(Task<AuthenticationState> task)
@@ -38,11 +95,13 @@ else
         InvokeAsync(async () =>
         {
             var authState = await task;
-            if (!authState.User.Identity.IsAuthenticated && !IsAuthPage())
+            hasToken = !string.IsNullOrEmpty(await LocalStorage.GetItemAsync<string>("authToken"));
+            
+            if (!authState.User.Identity.IsAuthenticated && !IsAuthPage() && !hasToken)
             {
                 Navigation.NavigateTo("/login-register");
             }
-
+            
             StateHasChanged();
         });
     }
@@ -61,6 +120,15 @@ else
 
 <style>
     .auth-page {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        width: 100%;
+        padding: 1rem;
+    }
+    
+    .auth-loading {
         display: flex;
         justify-content: center;
         align-items: center;

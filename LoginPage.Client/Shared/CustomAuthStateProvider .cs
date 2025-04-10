@@ -79,14 +79,24 @@ public class CustomAuthStateProvider : AuthenticationStateProvider
     /// <param name="token">The authentication token.</param>
     public async Task Login(string token)
     {
+        // Зберігаємо токен
         await _localStorage.SetItemAsync("authToken", token);
 
-        var identity = new ClaimsIdentity(new[]
-        {
-            new Claim(ClaimTypes.Name, "User")
-        }, "jwt");
+        // Створюємо identity з деякими базовими claims
+        var claims = new List<Claim>
+    {
+        new Claim(ClaimTypes.Name, "User"),
+        new Claim(ClaimTypes.NameIdentifier, "user-id"),
+        new Claim("access_token", token)
+    };
 
-        _user = new ClaimsPrincipal(identity);
+        var identity = new ClaimsIdentity(claims, "jwt");
+        var user = new ClaimsPrincipal(identity);
+
+        // Оновлюємо приватне поле _user
+        _user = user;
+
+        // Повідомляємо про зміну стану аутентифікації
         NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(_user)));
     }
 

@@ -1,6 +1,7 @@
 ﻿@page "/login-register"
-@page "/login"
+@layout MainLayout
 @using Blazored.LocalStorage
+
 @using Microsoft.JSInterop
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
@@ -185,7 +186,6 @@
     {
         await SafeJsLogAsync("Login button clicked");
 
-        // Validate the form; if invalid, log and exit.
         if (!ValidateForm())
         {
             await SafeJsLogAsync("Login validation failed");
@@ -194,31 +194,27 @@
 
         try
         {
-            // Indicate that the login process is in progress.
             isLoading = true;
-            StateHasChanged(); // Update UI
-
-            await SafeJsLogAsync("Attempting login with:", loginUser.Email);
+            StateHasChanged();
 
             var response = await Http.PostAsJsonAsync($"api/account/login", loginUser);
 
-            await SafeJsLogAsync("Login response status:", response.StatusCode);
-
-            // Read the response content.
-            var responseContent = await response.Content.ReadAsStringAsync();
-            await SafeJsLogAsync("Login response content:", responseContent);
-
             if (response.IsSuccessStatusCode)
             {
-                var token = responseContent;
+                var token = await response.Content.ReadAsStringAsync();
 
                 if (!string.IsNullOrWhiteSpace(token))
                 {
-                    await LocalStorage.SetItemAsync("authToken", token);
+                    // Викликаємо метод Login у провайдері аутентифікації
                     await AuthProvider.Login(token);
 
-                    // Чіткий редирект на сторінку KPI після логіну
+                    // Важливо чекати, щоб стан аутентифікації оновився
+                    await Task.Delay(300);
+
+                    // Після того як стан аутентифікації оновився, перенаправляємо
                     NavigationManager.NavigateTo("/kpi-page");
+
+                    return;
                 }
                 else
                 {
@@ -227,20 +223,16 @@
             }
             else
             {
+                var responseContent = await response.Content.ReadAsStringAsync();
                 message = !string.IsNullOrWhiteSpace(responseContent) ? responseContent : "Invalid login credentials.";
-                Console.WriteLine($"Login failed: {message}");
-                await SafeJsLogAsync("Login failed:", message);
             }
         }
         catch (Exception ex)
         {
             message = "Error: " + ex.Message;
-            Console.WriteLine($"Login exception: {ex.Message}");
-            await SafeJsLogAsync("Login exception:", ex.Message);
         }
         finally
         {
-            // Reset the loading indicator.
             isLoading = false;
             StateHasChanged();
         }
